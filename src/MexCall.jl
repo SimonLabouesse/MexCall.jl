@@ -1,13 +1,32 @@
 module MexCall
 
-export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall
-
+export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall, mxAddMexFile, enumMxFunc
 typealias mxArray Ptr{Void};
 #
 #
 function mxFind()
-    global libmx = dlopen("C:/Users/Simon/Perso/projets/stage/IPHT/julia/myType/juliaMex/libmx.dll");
+    if( ismatch(r"([^;]+MATLAB[^;])"i,ENV["path"]) )
+        path = match(r"([^;]+MATLAB[^;]+win64)"i,ENV["path"]) ;
+        if(path==nothing) 
+            path = match(r"([^;]+MATLAB[^;]+win32)"i,ENV["path"]) ;        
+        end
+        #
+        #
+        if(path!=nothing) 
+            path = path.match;
+            path = replace(path,"\\","/");
+            #println(path);
+            try
+                global libmx = dlopen("$path/libmx.dll");
+                println("Found libmx @ $path");
+            end
+        end
+    else
+        println("No mmatlab in this computer");
+    end
 end
+#
+#
 #
 #
 function mxLoad()
@@ -48,6 +67,7 @@ function mxInit()
     mxFind();
     mxLoad();
     global mxPenv=Array(Ptr{mxArray},0);
+    global enumMxFunc= (String=>String)[];
     global enumType=(DataType=>Int64)[Bool => 3 ,
                                       Char => 4 ,
                                       Float64 => 6 ,
@@ -60,6 +80,20 @@ function mxInit()
                                       Uint32 => 13,
                                       Int64 => 14 ,
                                       Uint64 => 15    ];
+end
+#
+#
+function mxAddMexFile(completeFileName)
+    #
+    #completeFileName = "C:/cygwin64/home/Simon/work/juliaWork/mexFile/readkhoros_info.mexw64";
+    
+    #global enumMxFunc= (UTF8String=>UTF8String)[];
+
+    #completeFileName = "~/work/juliaWork/mexFile/readkhoros_info.mexw64";
+    fileName = match(r"(\w+)\.\w{2,6}$",completeFileName);
+    fileName = fileName.captures[1];
+    enumMxFunc[fileName] = completeFileName;
+
 end
 #
 #
@@ -77,7 +111,7 @@ function mxAlloc(mType::DataType, dims::Int...)
     a = convert(aType,a);
     a = pointer_to_array(a,size);
     a = reshape(a,dims);
-    println(a);
+    #println(a);
     return a;
 end
 #
@@ -95,40 +129,23 @@ function mxDestroy()
 end
 #
 #
-function test2()
-    mxInit();
-    mxStringA = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"test2");
-    mxStringB = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"BBBBB");
-    nlhs = 2;
-    plhs = Array(Ptr{Void},nlhs);
-    plhs[1] = mxStringA;
-    plhs[2] = mxStringB;
-    pushEnv(plhs);
-    push!(mxPenv,mxStringA);
-    mxpenv;
-    mxDestroy();
-    mxPenv;
-end
-#
-#
-function test()
-    mxString = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"test2"); 
-    M= ccall(mxGetM,Int,(Ptr{Void},),mxString);
-    N = ccall(mxGetN,Int,(Ptr{Void},),mxString);
-    buflen = M*N+1;    
-    charTab = Array(Uint8,buflen);
-    statut = ccall(mxGetString,Int,(Ptr{Void},Ptr{Uint8},Int),mxString,pointer(charTab),buflen);
-    s  = UTF8String(charTab);
-    println(s);
-end
-#
 #
 #
 function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
     #println("\n\n\ndebut");
     #example readkhoros_info
-    mexFile = method;
+    #method = "readkhoros_info";
+    #
+    
+    if( haskey(enumMxFunc,method))
+        mexFile = enumMxFunc[method];
+    else
+        mexFile = method;
+    end
+    #println(mexFile);
     libmxfile = dlopen(mexFile);
+    #
+    #
     mexFunction = dlsym(libmxfile, :mexFunction);
     nlhs = length(rettypes);
     nrhs = length(argtypes);
@@ -167,7 +184,7 @@ function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
     #println("mexfunction");
     ccall(mexFunction,Void, (Int,Ptr{Uint8},Int,Ptr{Uint8}), nlhs, plhs, nrhs, prhs);
     #println("mexfunction end");
-    mxPush(plhs);
+    #mxPush(plhs);
     #switch type output
     for id = 1:nlhs
         rettype = rettypes[id];
@@ -207,13 +224,14 @@ function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
 end
 #
 #
-function mxCall(methods::String, rettypes::Tuple, rets,args)
-    #dont work input array and not tuple 
-    argtypes = typeof(args);
-    #println(argtypes);
-    mxCall(methods,rettypes,argtypes,rets,args);
-end
+#function mxCall(methods::String, rettypes::Tuple, rets,args)
+#    #dont work input array and not tuple 
+#    argtypes = typeof(args);
+#    #println(argtypes);
+#    mxCall(methods,rettypes,argtypes,rets,args);
+#end
 #
+mxInit();
 
 
 
