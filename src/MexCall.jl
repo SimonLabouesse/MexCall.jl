@@ -4,25 +4,51 @@ export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall, mxAddMexFile, enumMxFunc
 typealias mxArray Ptr{Void};
 #
 #
-function mxFind()
+function mxFind(path=nothing)
+    if(path!=nothing) 
+        try  
+            global libmx = dlopen("$path\\libmx.dll");
+            ENV["path"]="$(ENV["path"]);$path";  # set the environment variable to include the folder in the path.
+            println("Found libmx @ $path. Path added to environment.");
+        catch
+            println("libmx not found in the user provided location: @ $path . Try to call mxInit(\"path_to_libmx.dll_in_matlab_folder\")");
+        end
+        return
+    end
     if( ismatch(r"([^;]+MATLAB[^;])"i,ENV["path"]) )
-        path = match(r"([^;]+MATLAB[^;]+win64)"i,ENV["path"]) ;
+        path = match(r"([^;]+MATLAB[^;]+bin)"i,ENV["path"]) ;
         if(path==nothing) 
-            path = match(r"([^;]+MATLAB[^;]+win32)"i,ENV["path"]) ;        
+            path = match(r"([^;]+MATLAB[^;]+bin\win32)"i,ENV["path"]) ;    
         end
         #
         #
         if(path!=nothing) 
             path = path.match;
-            path = replace(path,"\\","/");
+            # path = replace(path,"\\","/");
             #println(path);
-            try
-                global libmx = dlopen("$path/libmx.dll");
+            try  # is the library directly in the path?
+                global libmx = dlopen("$path\\libmx.dll");
                 println("Found libmx @ $path");
+            catch # maybe it is in the win64 or win32 sub directory?
+                try  
+                    global libmx = dlopen("$path\\win64\\libmx.dll");
+                    ENV["path"]="$(ENV["path"]);$path\\win64";  # set the environment variable to include the folder in the path.
+                    println("Found libmx @ $path\\win64. Path added to environment.");
+                catch
+                    try
+                        global libmx = dlopen("$path\\win32\\libmx.dll");
+                        ENV["path"]="$(ENV["path"]);$path\\win32";  # set the environment variable to include the folder in the path.
+                        println("Found libmx @ $path\\win32. Path added to environment.");
+                     catch
+                        println("libmx not found in @ $path . Try to call mxInit(\"path_to_libmx.dll_in_matlab_folder\")");
+                    end
+                end
             end
+        else
+                println("No matlab in this computer. Try to call mxInit(\"path_to_libmx.dll_in_matlab_folder\")");
         end
     else
-        println("No mmatlab in this computer");
+        println("No matlab in this computer. Try to call mxInit(\"path_to_libmx.dll_in_matlab_folder\")");
     end
 end
 #
@@ -63,8 +89,8 @@ function mxLoad()
 end
 #
 #
-function mxInit()
-    mxFind();
+function mxInit(path=nothing)
+    mxFind(path);
     mxLoad();
     global mxPenv=Array(Ptr{mxArray},0);
     global enumMxFunc= (String=>String)[];
