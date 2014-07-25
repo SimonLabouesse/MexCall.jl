@@ -111,12 +111,9 @@ end
 
 
 function writekhoros_info(varargs...)
-
-
-    using MexCall;
-    varargs = (convert(UTF8String,"hello monde"), [10 10 10 20 20], convert(UTF8String,"uint8") );
-    #method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
-    method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+    method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
+    cd("C:/Users/user/Documents/Julia/")
+    #method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
     #
     rettypes=(Float64,);
     #
@@ -137,13 +134,13 @@ function writekhoros_info(varargs...)
 end
 
 
-writekhoros_info("hello monde",[10 10 10 20 20],"uint8")
+#writekhoros_info("hello monde",[10 10 10 20 20],"uint8")
 
-cuda_cuda("cuda_memory");
+#cuda_cuda("cuda_memory");
 
-ret=cuda_cuda("rr",[10 10],[10 10]);
+#ret=cuda_cuda("rr",[10 10],[10 10]);
 
-a=rand(10,10)
+#a=rand(10,10)
 
 
 # is mexErrMsgTxt supported???  Can it be supported?

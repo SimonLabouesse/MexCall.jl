@@ -253,7 +253,11 @@ function convInput(varargs...)
             println("Deb String \n");
             prhs[id] = ccall(mxCreateString,mxArray, (Ptr{Uint8},),args[id]);
             println("Fin String \n");
-        elseif (argtype <: Array)
+        elseif(argtype == ASCIIString)
+            println("Deb String \n");
+            prhs[id] = ccall(mxCreateString,mxArray, (Ptr{Uint8},),convert(UTF8String,args[id]));
+            println("Fin String \n");
+        elseif(argtype <: Array)
             if( ndims(args[id])==2 )
                 println("Start Array\n");
                 #see example arrayFillSetData.c
