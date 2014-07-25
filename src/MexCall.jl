@@ -1,6 +1,6 @@
 module MexCall
 
-export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall, mxAddMexFile, enumMxFunc
+export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall, mxAddMexFile, mxGetPointer, mxSetPointer, enumMxFunc, convInput
 typealias mxArray Ptr{Void};
 #
 include("load.jl");
@@ -120,7 +120,16 @@ function mxDestroy()
 end
 #
 #
-#
+function mxGetPointer(anMxArray,aType=Float32)
+    ret = ccall(mxGetPr, Ptr{aType}, (mxArray,), anMxArray);
+    println(ret);
+    ret = convert(Ptr{aType},ret);
+end
+
+function mxSetPointer(anMxArray,aPtr)
+   ccall(mxSetPr,Void,(mxArray,Ptr{Void}),anMxArray,aPtr);
+end
+
 #
 function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
     #println("\n\n\ndebut");
@@ -158,7 +167,8 @@ function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
                 #println(enumType[ eltype(args[id])]);
                 ccall(mxSetM,Void,(mxArray, Int,),prhs[id] ,size(args[id],1));
                 ccall(mxSetN,Void,(mxArray, Int,),prhs[id] ,size(args[id],2));
-                ccall(mxSetPr,Void,(mxArray,Ptr{Void}),prhs[id],pointer(args[id]));
+                mxSetPointer(prhs[id],pointer(args[id]))
+                # ccall(mxSetPr,Void,(mxArray,Ptr{Void}),prhs[id],pointer(args[id]));
             else
                 #println("Dim diff 2");
                 #println(ndims(args[id]));
@@ -195,9 +205,10 @@ function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
             #println(curType);
             #println(plhs[id]);
             #println(curType);
-            ret = ccall(mxGetPr, Ptr{Float64}, (mxArray,), plhs[id]);
-            println(ret);
-            ret = convert(Ptr{Float64},ret);
+            ret=mxGetPointer(plhs[id])
+            #ret = ccall(mxGetPr, Ptr{Float64}, (mxArray,), plhs[id]);
+            #println(ret);
+            #ret = convert(Ptr{Float64},ret);
             #println(M);
             #println(N);
             #println(ret);
@@ -215,7 +226,7 @@ function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
 end
 #
 #
-function mxCall(method::String, args...)
+function mxCall(method::String, rettypes, args...)
     (nrhs, prhs) = convInput(args);
     #
     nlhs = 10; #length(rettypes);
@@ -228,9 +239,57 @@ function mxCall(method::String, args...)
     end
     libmxfile = dlopen(mexFile);
     mexFunction = dlsym(libmxfile, :mexFunction);
+    println("Will call ccall now \n");
     ccall(mexFunction,Void, (Int,Ptr{Uint8},Int,Ptr{Uint8}), nlhs, plhs, nrhs, prhs);
+
+    rets=Array(Any,0);
+    println(length(rettypes))
+ 
+    for id = 1:length(rettypes)
+        rettype = rettypes[id];
+        if(plhs[id] == nothing)
+            break;
+        end
+        println(id)
+        println(plhs[id])
+
+
+        M= ccall(mxGetM,Int,(mxArray,),plhs[id]);
+        N = ccall(mxGetN,Int,(mxArray,),plhs[id]);
+        #
+        if(rettype == UTF8String)    
+            buflen = M*N+1;
+            #charTab = Array(Uint8,buflen);
+            ret = Array(Uint8,buflen);          
+            statut = ccall(mxGetString,Int,(mxArray,Ptr{Uint8},Int),plhs[id],ret,buflen);
+            ret  = UTF8String(ret);
+            push!(rets,ret);
+        elseif(rettype <: Array)   
+            #println(rettype);
+            curType =  eltype(rettype);
+            #println(curType);
+            #println(plhs[id]);
+            #println(curType);
+            ret=mxGetPointer(plhs[id])
+            #ret = ccall(mxGetPr, Ptr{Float64}, (mxArray,), plhs[id]);
+            #println(ret);
+            #ret = convert(Ptr{Float64},ret);
+            #println(M);
+            #println(N);
+            #println(ret);
+            ret = pointer_to_array(ret,M*N);
+            ret = reshape(ret,M,N);
+            push!(rets,ret);
+        elseif(rettype <: Number)
+            #println("not tested");
+            #return is always a double
+            ret = ccall(mxGetScalar, Float64, (mxArray,), plhs[id]);
+            ret = convert(rettype, ret);
+            push!(rets,ret);
+        end
+    end
     #
-    return plhs;
+    return rets;
     #
 end
 #
@@ -262,16 +321,17 @@ function convInput(varargs...)
                 println("Start Array\n");
                 #see example arrayFillSetData.c
                 prhs[id] = ccall(mxCreateNumericMatrix,mxArray, (Int, Int, Int, Int),0, 0, enumType[ eltype(args[id])],0) ;
-                #println("num type");
-                #println(enumType[ eltype(args[id])]);
+                println("num type");
+                println(enumType[ eltype(args[id])]);
                 ccall(mxSetM,Void,(mxArray, Int,),prhs[id] ,size(args[id],1));
                 ccall(mxSetN,Void,(mxArray, Int,),prhs[id] ,size(args[id],2));
-                temp = mxAlloc(Int64,size(args[id],1),size(args[id],2));
+                temp = mxAlloc(eltype(args[id]),size(args[id],1),size(args[id],2));
                 println("Malloc done\n");
                 println(prod(size(args[id])));
                 println(size(args[id]));
                 for i=1:prod(size(args[id]))
                     temp[i] = args[id][i];
+                    println(temp[i]);
                 end
                 #
                 ccall(mxSetPr,Void,(mxArray,Ptr{Void}),prhs[id],pointer(temp));

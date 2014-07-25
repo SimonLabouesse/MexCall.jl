@@ -91,24 +91,27 @@ function ExampleC()
 end
 
 
+using MexCall
+using Base.Test
 #method="C:\\Users\\user\\AppData\\Local\\Temp\\user\\cuda_cuda.mexw64"
-function cuda_cuda(varargs...)
+function cuda_cuda(retTypes,varargs...)
     method="C:/Users/user/AppData/Local/Temp/user/cuda_cuda.mexw64"
 
-    rettypes=(Float64,)
-    argtypes=typeof(varargs); # (UTF8String,Int64)
+#    rettypes=(Float64,)
+#    argtypes=typeof(varargs); # (UTF8String,Int64)
 #        args= Array(Any,1);
  #       args[1]="put";
  #       args[2]=refnum;
-    rets= Array(Any,5);
+ #   rets= Array(Any,5);
     # libmxfile = dlopen(method)
     println(varargs)
 
-    mxCall(method,rettypes,argtypes,rets,varargs)
+    rets=mxCall(method,retTypes,varargs)
     return rets
 end
 # cuda_cuda('put',single(in));
 
+#
 
 function writekhoros_info(varargs...)
     method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
@@ -128,19 +131,27 @@ function writekhoros_info(varargs...)
     #
     # mxCall(method,rettypes,argtypes,rets,varargs)
     #
-    mxCall(method,varargs)
+    mxCall(method,(),varargs)
 
     return rets
 end
 
 
-#writekhoros_info("hello monde",[10 10 10 20 20],"uint8")
+writekhoros_info("hello monde",[10.0 10 10 20 20],"uint8")
 
-#cuda_cuda("cuda_memory");
+cuda_cuda((),"cuda_memory");
 
-#ret=cuda_cuda("rr",[10 10],[10 10]);
+ret=cuda_cuda((Float64,),"rr",[100.0 100.0],[-1.0 -1.0],[1.0 1.0]);
+ret2=cuda_cuda((Float64,),"times",ret[1],ret[1]);
+
+myrr=cuda_cuda((Array{Float32},),"get",ret2[1]);
 
 #a=rand(10,10)
 
 
 # is mexErrMsgTxt supported???  Can it be supported?
+
+function foo(outputs::Array{Any},input1)
+    outputs[1]=15;
+    outputs[2]="Hello World";
+end
