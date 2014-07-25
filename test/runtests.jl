@@ -1,3 +1,4 @@
+#
 using MexCall
 using Base.Test
 #
@@ -30,6 +31,66 @@ end
 #
 #
 
+
+function ExampleA()
+    mxInit();
+    method = "C:/Users/Simon/Perso/projets/stage/IPHT/julia/myType/juliaMex/exemples/yprime.mexw64";
+    rettypes = (Array{Float64,2},);
+    argtypes = (Int,Array{Float64,2});
+    rets = Any[];
+    a = mxAlloc(Float64,1,4);
+    for i=1:4
+        a[i]= i;
+    end
+    args = [1, Any];
+    args[2]=a;
+    mxCall(method,rettypes,argtypes, rets, args)
+    rets
+    mxDestroy();
+end
+
+
+function ExampleB()
+
+    mxInit();
+    method = "exemples/readkhoros_info.mexw64";
+    rettypes = (Array{Float64,2}, UTF8String);
+    argtypes = (UTF8String,);
+    rets = Any[];
+    args = ["exemples/MatlabKhoros_out_test.1"];
+    mxCall(method,rettypes,argtypes, rets, args)
+    rets
+    mxDestroy();
+    #
+
+end
+
+
+function ExampleC()
+    
+    mxInit();
+    #
+    #using MexCall;
+    #method = "exemples/writekhoros_info.mexw64";
+    method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+    rettypes = ();
+    argtypes = (UTF8String, Array{Int}, UTF8String);
+    rets = Any[];
+    #
+    a = mxAlloc(Int64,1,5)
+    for i=1:5
+        a[i]=10;
+    end
+    args = ["aaazzz", 0 ,  "uint8"];
+    args[2] = a
+    #
+    mxCall(method,rettypes,argtypes, rets, args);
+    mxFreeArray(a);
+    mxDestroy();
+
+end
+
+
 #method="C:\\Users\\user\\AppData\\Local\\Temp\\user\\cuda_cuda.mexw64"
 function cuda_cuda(varargs...)
     method="C:/Users/user/AppData/Local/Temp/user/cuda_cuda.mexw64"
@@ -50,19 +111,28 @@ end
 
 
 function writekhoros_info(varargs...)
-    method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
 
-    rettypes=(Float64,)
+
+    using MexCall;
+    varargs = (convert(UTF8String,"hello monde"), [10 10 10 20 20], convert(UTF8String,"uint8") );
+    #method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
+    method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+    #
+    rettypes=(Float64,);
+    #
     argtypes=typeof(varargs); # (UTF8String,Int64)
-#        args= Array(Any,1);
- #       args[1]="put";
- #       args[2]=refnum;
+    #        args= Array(Any,1);
+    #       args[1]="put";
+    #       args[2]=refnum;
     rets= Array(Any,5);
     # libmxfile = dlopen(method)
-    println(varargs)
-    println(argtypes)
+    #println(varargs)
+    #println(argtypes)
+    #
+    # mxCall(method,rettypes,argtypes,rets,varargs)
+    #
+    mxCall(method,varargs)
 
-     mxCall(method,rettypes,argtypes,rets,varargs)
     return rets
 end
 

@@ -3,6 +3,7 @@ module MexCall
 export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall, mxAddMexFile, enumMxFunc
 typealias mxArray Ptr{Void};
 #
+include("load.jl");
 #
 function mxFind(path=nothing)
     if(path!=nothing) 
@@ -55,40 +56,6 @@ end
 #
 #
 #
-function mxLoad()
-        #funcNeeded =  {
-     #              :mxGetM,
-      #             :mxGetN,
-       #            :mxCreateStructArray,
-        #           :mxCreateString,
-         #          :mxGetString,
-          #         :mxGetPr
-           #        };
-    #for sym in funcNeeded
-    #        @eval global const $sym = cglobal(dlsym(libmx,$(Expr(:quote,sym))), Int32)
-    #end
-    global mxCreateStructArray = dlsym(libmx, :mxCreateStructArray);
-    global mxCreateString = dlsym(libmx, :mxCreateString);
-    global mxGetString = dlsym(libmx, :mxGetString);
-    global mxGetM = dlsym(libmx, :mxGetM);
-    global mxGetN = dlsym(libmx, :mxGetN);
-    global mxSetM = dlsym(libmx, :mxSetM);
-    global mxSetN = dlsym(libmx, :mxSetN);    
-    global mxGetString = dlsym(libmx, :mxGetString);
-    global mxGetPr = dlsym(libmx, :mxGetPr);
-    global mxSetPr = dlsym(libmx, :mxSetPr);    
-    global mxCreateDoubleMatrix = dlsym(libmx, :mxCreateDoubleMatrix);
-    global mxCreateNumericMatrix = dlsym(libmx, :mxCreateNumericMatrix);
-    global mxCreateNumericArray = dlsym(libmx, :mxCreateNumericArray);
-    global mxCalloc = dlsym(libmx, :mxCalloc);
-    global mxMalloc = dlsym(libmx, :mxMalloc);
-    global mxFree = dlsym(libmx, :mxFree);
-    global mxGetScalar = dlsym(libmx, :mxGetScalar);
-    #global mxCreateSingleScalar = dlsym(libmx, :mxCreateSingleScalar);
-    global mxCreateDoubleScalar = dlsym(libmx, :mxCreateDoubleScalar);
-end
-#
-#
 function mxInit(path=nothing)
     mxFind(path);
     mxLoad();
@@ -112,14 +79,12 @@ end
 function mxAddMexFile(completeFileName)
     #
     #completeFileName = "C:/cygwin64/home/Simon/work/juliaWork/mexFile/readkhoros_info.mexw64";
-    
     #global enumMxFunc= (UTF8String=>UTF8String)[];
-
     #completeFileName = "~/work/juliaWork/mexFile/readkhoros_info.mexw64";
     fileName = match(r"(\w+)\.\w{2,6}$",completeFileName);
     fileName = fileName.captures[1];
     enumMxFunc[fileName] = completeFileName;
-
+#
 end
 #
 #
@@ -162,7 +127,7 @@ function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
     #example readkhoros_info
     #method = "readkhoros_info";
     #
-    
+    #   
     if( haskey(enumMxFunc,method))
         mexFile = enumMxFunc[method];
     else
@@ -250,13 +215,88 @@ function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
 end
 #
 #
-#function mxCall(methods::String, rettypes::Tuple, rets,args)
-#    #dont work input array and not tuple 
-#    argtypes = typeof(args);
-#    #println(argtypes);
-#    mxCall(methods,rettypes,argtypes,rets,args);
-#end
+function mxCall(method::String, args...)
+    (nrhs, prhs) = convInput(args);
+    #
+    nlhs = 10; #length(rettypes);
+    plhs = Array(mxArray,nlhs);
+    #
+    if( haskey(enumMxFunc,method))
+        mexFile = enumMxFunc[method];
+    else
+        mexFile = method;
+    end
+    libmxfile = dlopen(mexFile);
+    mexFunction = dlsym(libmxfile, :mexFunction);
+    ccall(mexFunction,Void, (Int,Ptr{Uint8},Int,Ptr{Uint8}), nlhs, plhs, nrhs, prhs);
+    #
+    return plhs;
+    #
+end
 #
+#
+#
+function convInput(varargs...)
+    #
+    println("ConvInput\n");
+    args = varargs[1][1];
+    argtypes=typeof(args);
+    println(argtypes);
+    nrhs = length(argtypes);
+    println(nrhs);
+    prhs = Array(mxArray,nrhs);
+    for id = 1:nrhs
+        argtype = argtypes[id];
+        #
+        #switch type input
+        if(argtype == UTF8String)
+            println("Deb String \n");
+            prhs[id] = ccall(mxCreateString,mxArray, (Ptr{Uint8},),args[id]);
+            println("Fin String \n");
+        elseif (argtype <: Array)
+            if( ndims(args[id])==2 )
+                println("Start Array\n");
+                #see example arrayFillSetData.c
+                prhs[id] = ccall(mxCreateNumericMatrix,mxArray, (Int, Int, Int, Int),0, 0, enumType[ eltype(args[id])],0) ;
+                #println("num type");
+                #println(enumType[ eltype(args[id])]);
+                ccall(mxSetM,Void,(mxArray, Int,),prhs[id] ,size(args[id],1));
+                ccall(mxSetN,Void,(mxArray, Int,),prhs[id] ,size(args[id],2));
+                temp = mxAlloc(Int64,size(args[id],1),size(args[id],2));
+                println("Malloc done\n");
+                println(prod(size(args[id])));
+                println(size(args[id]));
+                for i=1:prod(size(args[id]))
+                    temp[i] = args[id][i];
+                end
+                #
+                ccall(mxSetPr,Void,(mxArray,Ptr{Void}),prhs[id],pointer(temp));
+            else
+                #println("Dim diff 2");
+                #println(ndims(args[id]));
+            end
+        elseif(argtype <: Number)
+            #println("not tested");
+            argTemp = convert(Float64, args[id]);
+            #println(argTemp);
+            prhs[id] = ccall(mxCreateDoubleScalar,mxArray,(Float64,), argTemp);
+        end
+        #
+        #
+    end
+    return (nrhs, prhs);
+    #
+end
+#
+#
+function convOutput(output::mxArray)
+    #
+    #
+    #
+end
+
+
+
 mxInit();
 
 
