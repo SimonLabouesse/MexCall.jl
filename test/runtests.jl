@@ -1,8 +1,10 @@
+
+
 #
 using MexCall
 using Base.Test
 #
-function test2()
+function memtest()
     mxInit();
     mxStringA = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"test2");
     mxStringB = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"BBBBB");
@@ -18,7 +20,7 @@ function test2()
 end
 #
 #
-function test()
+function memtest2()
     mxString = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"test2"); 
     M= ccall(mxGetM,Int,(Ptr{Void},),mxString);
     N = ccall(mxGetN,Int,(Ptr{Void},),mxString);
@@ -30,93 +32,100 @@ function test()
 end
 #
 #
-
-
-function ExampleA()
+#
+function exampleA()
+    #
     mxInit();
-    method = "C:/Users/Simon/Perso/projets/stage/IPHT/julia/myType/juliaMex/exemples/yprime.mexw64";
-    rettypes = (Array{Float64,2},);
-    argtypes = (Int,Array{Float64,2});
-    rets = Any[];
-    a = mxAlloc(Float64,1,4);
-    for i=1:4
-        a[i]= i;
-    end
-    args = [1, Any];
-    args[2]=a;
-    mxCall(method,rettypes,argtypes, rets, args)
+    method = "C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/yprime.mexw64";
+    args = (1,[1.0 2 3 4]);
+    rets = mxCall(method, 1, args)
     rets
+    #
     mxDestroy();
 end
-
-
-function ExampleB()
-
+#
+#
+#
+function exampleB()
+#
     mxInit();
-    method = "exemples/readkhoros_info.mexw64";
-    rettypes = (Array{Float64,2}, UTF8String);
-    argtypes = (UTF8String,);
-    rets = Any[];
-    args = ["exemples/MatlabKhoros_out_test.1"];
-    mxCall(method,rettypes,argtypes, rets, args)
-    rets
+    #method = "exemples/readkhoros_info.mexw64";
+    method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/readkhoros_info.mexw64";
+    #rettypes = (Array{Float64,2}, UTF8String);
+    #argtypes = (UTF8String,);
+    #rets = Any[];
+    #args = ["exemples/MatlabKhoros_out_test.1"];
+    #mxCall(method,rettypes,argtypes, rets, args)
+    #rets
+    args = ["C:/cygwin64/home/Simon/work/juliaWork/juliaMex/oexemples/MatlabKhoros_out_test.1"];
+    #mxCall(method,rettypes,argtypes, rets, args)
+    #rets
+    rets = mxCall(method,2,args)
     mxDestroy();
     #
-
+    #
 end
-
-
-function ExampleC()
-    
+#
+#
+function exampleC()
+    #   
     mxInit();
     #
     #using MexCall;
     #method = "exemples/writekhoros_info.mexw64";
     method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
-    rettypes = ();
-    argtypes = (UTF8String, Array{Int}, UTF8String);
-    rets = Any[];
+    #rettypes = ();
+    #argtypes = (UTF8String, Array{Int}, UTF8String);
+    #rets = Any[];
     #
-    a = mxAlloc(Int64,1,5)
-    for i=1:5
-        a[i]=10;
-    end
-    args = ["aaazzz", 0 ,  "uint8"];
-    args[2] = a
+    #a = mxAlloc(Int64,1,5)
+    #for i=1:5
+    #    a[i]=10;
+    #end
+    #args = ["aaazzz", 0 ,  "uint8"];
+    #args[2] = a
     #
-    mxCall(method,rettypes,argtypes, rets, args);
-    mxFreeArray(a);
+    #mxCall(method,rettypes,argtypes, rets, args);
+    #mxFreeArray(a);
+    args = ("aaazzz", [10 10 10 10 10] ,  "uint8");
+    mxCall(method,0, args);
     mxDestroy();
-
+    #
 end
+#
+#
 
 
-using MexCall
-using Base.Test
+
+
+
+
+#
 #method="C:\\Users\\user\\AppData\\Local\\Temp\\user\\cuda_cuda.mexw64"
 function cuda_cuda(retTypes,varargs...)
     method="C:/Users/user/AppData/Local/Temp/user/cuda_cuda.mexw64"
-
-#    rettypes=(Float64,)
-#    argtypes=typeof(varargs); # (UTF8String,Int64)
-#        args= Array(Any,1);
- #       args[1]="put";
- #       args[2]=refnum;
- #   rets= Array(Any,5);
+    #
+    #    rettypes=(Float64,)
+    #    argtypes=typeof(varargs); # (UTF8String,Int64)
+    #        args= Array(Any,1);
+    #       args[1]="put";
+    #       args[2]=refnum;
+    #   rets= Array(Any,5);
     # libmxfile = dlopen(method)
     println(varargs)
-
+#
     rets=mxCall(method,retTypes,varargs)
     return rets
 end
 # cuda_cuda('put',single(in));
-
 #
-
+#
+#
+#
 function writekhoros_info(varargs...)
-    method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
-    cd("C:/Users/user/Documents/Julia/")
-    #method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+    #method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
+    #cd("C:/Users/user/Documents/Julia/")
+    method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
     #
     rettypes=(Float64,);
     #
@@ -132,12 +141,24 @@ function writekhoros_info(varargs...)
     # mxCall(method,rettypes,argtypes,rets,varargs)
     #
     mxCall(method,(),varargs)
-
+    #
     return rets
 end
+#
+#
+#
+#
+#
+
+ExampleA()
+
+
 
 
 writekhoros_info("hello monde",[10.0 10 10 20 20],"uint8")
+
+
+
 
 cuda_cuda((),"cuda_memory");
 
