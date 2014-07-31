@@ -38,8 +38,9 @@ function exampleA()
     mxInit();
     method = "C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/yprime.mexw64";
     args = (1,[1.0 2 3 4]);
-    rets = mxCall(method, 1, args)
-    rets
+    rets = mxCall(method, 1, args);
+    println("result :");
+    println(rets);
     #
     mxDestroy();
 end
@@ -57,10 +58,13 @@ function exampleB()
     #args = ["exemples/MatlabKhoros_out_test.1"];
     #mxCall(method,rettypes,argtypes, rets, args)
     #rets
-    args = ["C:/cygwin64/home/Simon/work/juliaWork/juliaMex/oexemples/MatlabKhoros_out_test.1"];
+    #                if wrong path Julia crash
+    args = ("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/MatlabKhoros_out_test.1",);
     #mxCall(method,rettypes,argtypes, rets, args)
     #rets
-    rets = mxCall(method,2,args)
+    rets = mxCall(method,2,args);
+    println("result :");
+    println(rets);
     mxDestroy();
     #
     #
@@ -87,13 +91,59 @@ function exampleC()
     #
     #mxCall(method,rettypes,argtypes, rets, args);
     #mxFreeArray(a);
-    args = ("aaazzz", [10 10 10 10 10] ,  "uint8");
-    mxCall(method,0, args);
+    args = ("aaazzz", [10.0 10 10 10 10] ,  "uint8");
+    rets = mxCall(method,0, args);
+    println("result :");
+    println(rets);
     mxDestroy();
     #
 end
 #
 #
+#
+exampleA()
+#
+exampleB()
+#
+exampleC()
+#
+#
+
+
+rex = :(a+b)
+nameFunc = "testccc"
+symFunc = symbol(nameFunc)
+ex = :( $symFunc(a,b) = $rex)
+dump(ex)
+eval(ex)
+
+
+
+using MexCall
+mxInit();
+method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+#mxAddMexFile(method,0)
+#
+#
+#@mxAddMexFileV2(:($method),0)
+@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64",0)
+#
+#
+writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8")
+#
+#
+enumMxFunc
+
+
+
+
+out =  mxAddMexFile(method,0)
+println(out);
+
+rets = writekhoros_info( "aaazzz", [10.0 10 10 10 10] ,  "uint8" )
+println("result :");
+println(rets);
+mxDestroy();
 
 
 

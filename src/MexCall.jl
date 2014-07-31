@@ -1,9 +1,18 @@
 module MexCall
-
-export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall, mxAddMexFile, mxGetPointer, mxSetPointer, enumMxFunc, convInput, getMxPenv
+#
+#
+#
+export mxInit, mxAlloc, mxDestroy, mxFreeArray, mxCall, @mxAddMexFile, mxGetPointer, mxSetPointer, enumMxFunc, convInput, getMxPenv
+#
+#
+#
 typealias mxArray Ptr{Void};
 #
+#
 include("load.jl");
+#
+#
+#
 #
 function mxFind(path=nothing)
     if(path!=nothing) 
@@ -59,9 +68,9 @@ end
 function mxInit(path=nothing)
     mxFind(path);
     mxLoad();
-    global mxPenv=Array(Ptr{mxArray},0);
-    global enumMxFunc= (String=>String)[];
-    global enumType=(DataType=>Int64)[Bool => 3 ,
+    global mxPenv = Array(Ptr{mxArray},0);
+    global enumMxFunc = (String=>String)[];
+    global enumType = (DataType=>Int64)[Bool => 3 ,
                                       Char => 4 ,
                                       Float64 => 6 ,
                                       Float32 => 7 ,
@@ -76,16 +85,25 @@ function mxInit(path=nothing)
 end
 #
 #
-function mxAddMexFile(completeFileName)
+macro mxAddMexFile(completeFileName, nlhs)
     #
-    #completeFileName = "C:/cygwin64/home/Simon/work/juliaWork/mexFile/readkhoros_info.mexw64";
-    #global enumMxFunc= (UTF8String=>UTF8String)[];
-    #completeFileName = "~/work/juliaWork/mexFile/readkhoros_info.mexw64";
-    fileName = match(r"(\w+)\.\w{2,6}$",completeFileName);
-    fileName = fileName.captures[1];
-    enumMxFunc[fileName] = completeFileName;
-#
+    if(!isa(completeFileName,ASCIIString))
+        error("First argument of completeFileName must be a string.");
+    end
+    if(!isa(nlhs,Int))
+        error("Second argument of completeFileName must be a integer.");
+    end
+    #    
+    local name = match(r"(\w+)\.\w{2,6}$", completeFileName)
+    name = name.captures[1]
+    enumMxFunc[name] = string(completeFileName)
+    #esc( :( println($name)))
+    global symFunc = symbol(name)
+    esc(:( $symFunc(args...) = mxCall($completeFileName,$nlhs, args) ))
+    #
+    #
 end
+#
 #
 function getMxPenv()
     return mxPenv;
@@ -95,14 +113,6 @@ function mxPush(plhs::Array{mxArray})
     for element in plhs
         push!(mxPenv,element);
     end
-end
-#
-function mxPush(element::Ptr)
-    push!(mxPenv,element);
-end
-#
-function mxPush(element::Array)
-    push!(mxPenv,element);
 end
 #
 function mxAlloc(mType::DataType, dims::Int...)
@@ -137,109 +147,16 @@ function mxGetPointer(anMxArray,aType=Float32)
     println(ret);
     ret = convert(Ptr{aType},ret);
 end
-
+#
+#
+#
 function mxSetPointer(anMxArray,aPtr)
    ccall(mxSetPr,Void,(mxArray,Ptr{Void}),anMxArray,aPtr);
 end
 
 #
-function mxCall(method::String, rettypes::Tuple, argtypes::Tuple, rets, args )
-    #println("\n\n\ndebut");
-    #example readkhoros_info
-    #method = "readkhoros_info";
-    #
-    #   
-    if( haskey(enumMxFunc,method))
-        mexFile = enumMxFunc[method];
-    else
-        mexFile = method;
-    end
-    #println(mexFile);
-    libmxfile = dlopen(mexFile);
-    #
-    #
-    mexFunction = dlsym(libmxfile, :mexFunction);
-    nlhs = length(rettypes);
-    nrhs = length(argtypes);
-    #println(nlhs);
-    #println(nrhs);
-    plhs = Array(mxArray,nlhs);
-    prhs = Array(mxArray,nrhs);
-    for id = 1:nrhs
-        argtype = argtypes[id];
-        #
-        #switch type input
-        if(argtype == UTF8String)
-            prhs[id] = ccall(mxCreateString,mxArray, (Ptr{Uint8},),args[id]);
-        elseif (argtype <: Array)
-            if( ndims(args[id])==2 )
-                #see example arrayFillSetData.c
-                prhs[id] = ccall(mxCreateNumericMatrix,mxArray, (Int, Int, Int, Int),0, 0, enumType[ eltype(args[id])],0) ;
-                #println("num type");
-                #println(enumType[ eltype(args[id])]);
-                ccall(mxSetM,Void,(mxArray, Int,),prhs[id] ,size(args[id],1));
-                ccall(mxSetN,Void,(mxArray, Int,),prhs[id] ,size(args[id],2));
-                mxSetPointer(prhs[id],pointer(args[id]))
-                # ccall(mxSetPr,Void,(mxArray,Ptr{Void}),prhs[id],pointer(args[id]));
-            else
-                #println("Dim diff 2");
-                #println(ndims(args[id]));
-            end
-        elseif(argtype <: Number)
-            #println("not tested");
-            argTemp = convert(Float64, args[id]);
-            #println(argTemp);
-            prhs[id] = ccall(mxCreateDoubleScalar,mxArray,(Float64,), argTemp);
-        end
-        #
-        #
-    end
-    #println("mexfunction");
-    ccall(mexFunction,Void, (Int,Ptr{Uint8},Int,Ptr{Uint8}), nlhs, plhs, nrhs, prhs);
-    #println("mexfunction end");
-    #mxPush(plhs);
-    #switch type output
-    for id = 1:nlhs
-        rettype = rettypes[id];
-        M= ccall(mxGetM,Int,(mxArray,),plhs[id]);
-        N = ccall(mxGetN,Int,(mxArray,),plhs[id]);
-        #
-        if(rettype == UTF8String)    
-            buflen = M*N+1;
-            #charTab = Array(Uint8,buflen);
-            ret = Array(Uint8,buflen);			
-            statut = ccall(mxGetString,Int,(mxArray,Ptr{Uint8},Int),plhs[id],ret,buflen);
-            ret  = UTF8String(ret);
-            push!(rets,ret);
-        elseif(rettype <: Array)   
-            #println(rettype);
-            curType =  eltype(rettype);
-            #println(curType);
-            #println(plhs[id]);
-            #println(curType);
-            ret=mxGetPointer(plhs[id])
-            #ret = ccall(mxGetPr, Ptr{Float64}, (mxArray,), plhs[id]);
-            #println(ret);
-            #ret = convert(Ptr{Float64},ret);
-            #println(M);
-            #println(N);
-            #println(ret);
-            ret = pointer_to_array(ret,M*N);
-            ret = reshape(ret,M,N);
-            push!(rets,ret);
-        elseif(rettype <: Number)
-            #println("not tested");
-            #return is always a double
-            ret = ccall(mxGetScalar, Float64, (mxArray,), plhs[id]);
-            ret = convert(rettype, ret);
-            push!(rets,ret);
-        end
-    end
-end
-#
-#
 function mxCall(method::String, nlhs, args...)
-    println("mxCall");
+    #println("mxCall");
     #println(args);
     (nrhs, prhs) = convInput(args);
     plhs = Array(mxArray,nlhs);
@@ -251,11 +168,11 @@ function mxCall(method::String, nlhs, args...)
     end
     libmxfile = dlopen(mexFile);
     mexFunction = dlsym(libmxfile, :mexFunction);
-    println("Will call ccall now \n");
-    println(nrhs);
+    #println("Will call ccall now \n");
+    #println(nrhs);
 
-    ccall(mexFunction,Void, (Int,Ptr{Uint8},Int,Ptr{Uint8}), nlhs, plhs, nrhs, prhs);
-    println("End of ccall \n");
+    ccall(mexFunction,Void, (Int,Ptr{mxArray},Int,Ptr{mxArray}), nlhs, plhs, nrhs, prhs);
+    #println("End of ccall \n");
     
     retsTest = extractOutput(nlhs, plhs);    
     retsTest
@@ -339,14 +256,14 @@ end
 #
 function extractOutput(nlhs, output::Array{mxArray})
     #
-    println("extractOutput\n");
-    println(output);
+    #println("extractOutput\n");
+    #println(output);
     ret = Array(Any,nlhs);
      for i = 1:nlhs
-         println(i);
+         #println(i);
          if( (output[i]!= C_NULL) && (!ccall(mxIsEmpty, Bool, (mxArray,), output[i]))  )
-             println("start for loop");
-             println(output[i]);
+             #println("start for loop");
+             #println(output[i]);
              M= ccall(mxGetM,Int,(mxArray,), output[i]);
              N = ccall(mxGetN,Int,(mxArray,), output[i]);
              #println(M);
@@ -354,39 +271,39 @@ function extractOutput(nlhs, output::Array{mxArray})
              if( ccall(mxIsNumeric, Bool, (mxArray,), output[i]))  # numeric
                  curType = Any;
                  if( ccall(mxIsDouble, Bool, (mxArray,), output[i]))  # double
-                     println("Double output");
+                     #println("Double output");
                      curpointer = ccall(mxGetPr, Ptr{Float64}, (mxArray,), output[i])
                  elseif( ccall(mxIsSingle, Bool, (mxArray,), output[i]))  # single
-                     println("Single output");
+                     #println("Single output");
                      curpointer = ccall(mxGetPr, Ptr{Float32}, (mxArray,), output[i])
                  elseif( ccall(mxIsInt8, Bool, (mxArray,), output[i]))  # Int8
-                     println("Int8 output");
+                     #println("Int8 output");
                      curpointer = ccall(mxGetPr, Ptr{Int8}, (mxArray,), output[i])
                  elseif( ccall(mxIsInt16, Bool, (mxArray,), output[i]))  # Int16
-                     println("Int16 output");
+                     #println("Int16 output");
                      curpointer = ccall(mxGetPr, Ptr{Int16}, (mxArray,), output[i])
                  elseif( ccall(mxIsInt32, Bool, (mxArray,), output[i]))  # Int32
-                     println("Int32 output");
+                     #println("Int32 output");
                      curpointer = ccall(mxGetPr, Ptr{Int32}, (mxArray,), output[i])
                  elseif( ccall(mxIsInt64, Bool, (mxArray,), output[i]))  # Int64
-                     println("Int64 output");
+                     #println("Int64 output");
                      curpointer = ccall(mxGetPr, Ptr{Int64}, (mxArray,), output[i])
                  elseif( ccall(mxIsUint8, Bool, (mxArray,), output[i]))  # Uint8
-                     println("Uint8 output");
+                     #println("Uint8 output");
                      curpointer = ccall(mxGetPr, Ptr{Uint8}, (mxArray,), output[i])
                  elseif( ccall(mxIsUint16, Bool, (mxArray,), output[i]))  # Uint16
-                     println("Uint16 output");
+                     #println("Uint16 output");
                      curpointer = ccall(mxGetPr, Ptr{Uint16}, (mxArray,), output[i])
                  elseif( ccall(mxIsUint32, Bool, (mxArray,), output[i]))  # Uint32
-                     println("Uint32 output");
+                     #println("Uint32 output");
                      curpointer = ccall(mxGetPr, Ptr{Uint32}, (mxArray,), output[i])
                  elseif( ccall(mxIsUint64, Bool, (mxArray,), output[i]))  # Uint64
-                     println("Uint64 output");
+                     #println("Uint64 output");
                      curpointer = ccall(mxGetPr, Ptr{Uint64}, (mxArray,), output[i])
                  end
                  curpointer = pointer_to_array(curpointer, M*N);
                  ret[i] = reshape(curpointer, M, N);
-                 println(ret[i]);
+                 #println(ret[i]);
              elseif ( ccall(mxIsChar, Bool, (mxArray,), output[i]))  # string
                  buflen = M*N+1;
                  ret[i] = Array(Uint8,buflen);			
@@ -394,7 +311,7 @@ function extractOutput(nlhs, output::Array{mxArray})
                  ret[i]  = UTF8String(ret[i]);
              end
              
-             println("end for loop");
+             #println("end for loop");
          end
 
          return ret;
