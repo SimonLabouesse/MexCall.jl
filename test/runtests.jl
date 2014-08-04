@@ -125,12 +125,26 @@ mxInit();
 #method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
 #mxAddMexFile(method,0)
 #@mxAddMexFileV2(:($method),0)
-#@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64",0)
-@mxAddMexFile("C:/Users/user/Documents/Julia/writekhoros_info.mexw64",0)
-enumMxFunc
+@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64",-1)
+#@mxAddMexFile("C:/Users/user/Documents/Julia/writekhoros_info.mexw64",0)
+#enumMxFunc
+
 writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8")
 #
 #
+
+writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8";nlhs=2)
+
+#
+#
+@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/readkhoros_info.mexw64",2)
+readkhoros_info("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/MatlabKhoros_out_test.1")
+
+
+#readkhoros_info("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/MatlabKhoros_out_test.1";nlhs=1)
+
+
+
 
 
 
@@ -225,3 +239,11 @@ function foo(outputs::Array{Any},input1)
     outputs[1]=15;
     outputs[2]="Hello World";
 end
+
+
+
+function ter(args...;test=1)
+    return (test,args[1])
+end
+methods(ter)
+

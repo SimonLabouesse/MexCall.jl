@@ -92,6 +92,9 @@ macro mxAddMexFile(completeFileName, nlhs)
     end
     if(!isa(nlhs,Int))
         error("Second argument of completeFileName must be a integer.");
+    elseif(nlhs<0)
+        print("nlhs set by default to 10\n");
+        nlhs=10;
     end
     #    
     local name = match(r"(\w+)\.\w{2,6}$", completeFileName)
@@ -99,7 +102,12 @@ macro mxAddMexFile(completeFileName, nlhs)
     enumMxFunc[name] = string(completeFileName)
     #esc( :( println($name)))
     global symFunc = symbol(name)
-    esc(:( $symFunc(args...) = mxCall($completeFileName,$nlhs, args) ))
+    #esc(:( $symFunc(args...;nlhs=$nlhs) = mxCall($completeFileName,nlhs, args) ))
+    esc(quote
+        function $symFunc(args...;nlhs=$nlhs)
+            return mxCall($completeFileName,nlhs, args);
+        end
+        end);
     #
     #
 end
@@ -156,8 +164,6 @@ end
 
 #
 function mxCall(method::String, nlhs, args...)
-    #println("mxCall");
-    #println(args);
     (nrhs, prhs) = convInput(args);
     plhs = Array(mxArray,nlhs);
     #
