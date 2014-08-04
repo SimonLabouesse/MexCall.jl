@@ -121,18 +121,17 @@ eval(ex)
 
 using MexCall
 mxInit();
-method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+#method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+#method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
 #mxAddMexFile(method,0)
-#
-#
 #@mxAddMexFileV2(:($method),0)
-@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64",0)
-#
-#
+#@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64",0)
+@mxAddMexFile("C:/Users/user/Documents/Julia/writekhoros_info.mexw64",0)
+enumMxFunc
 writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8")
 #
 #
-enumMxFunc
+
 
 
 
