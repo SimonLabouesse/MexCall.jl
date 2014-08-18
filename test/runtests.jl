@@ -1,35 +1,40 @@
-
-
 #
 using MexCall
 using Base.Test
 #
-function memtest()
-    mxInit();
-    mxStringA = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"test2");
-    mxStringB = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"BBBBB");
-    nlhs = 2;
-    plhs = Array(Ptr{Void},nlhs);
-    plhs[1] = mxStringA;
-    plhs[2] = mxStringB;
-    pushEnv(plhs);
-    push!(mxPenv,mxStringA);
-    mxpenv;
-    mxDestroy();
-    mxPenv;
-end
+#
+#method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
+#method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
+#mxAddMexFile(method,0)
+#@mxAddMexFileV2(:($method),0)
+#
+@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64",-1)
+#@mxAddMexFile("C:/Users/user/Documents/Julia/writekhoros_info.mexw64",0)
+#enumMxFunc
+#
+@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/readkhoros_info.mexw64",2)
 #
 #
-function memtest2()
-    mxString = ccall(mxCreateString,Ptr{Void}, (Ptr{Uint8},),"test2"); 
-    M= ccall(mxGetM,Int,(Ptr{Void},),mxString);
-    N = ccall(mxGetN,Int,(Ptr{Void},),mxString);
-    buflen = M*N+1;    
-    charTab = Array(Uint8,buflen);
-    statut = ccall(mxGetString,Int,(Ptr{Void},Ptr{Uint8},Int),mxString,pointer(charTab),buflen);
-    s  = UTF8String(charTab);
-    println(s);
-end
+readkhoros_info("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/MatlabKhoros_out_test.1")
+
+
+
+
+writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8")
+#
+#
+
+writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8";nlhs=2)
+
+
+
+
+#readkhoros_info("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/MatlabKhoros_out_test.1";nlhs=1)
+
+
+
+#### dev test ####
+
 #
 #
 #
@@ -110,56 +115,6 @@ exampleC()
 #
 
 
-rex = :(a+b)
-nameFunc = "testccc"
-symFunc = symbol(nameFunc)
-ex = :( $symFunc(a,b) = $rex)
-dump(ex)
-eval(ex)
-
-
-
-using MexCall
-mxInit();
-#method="C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64";
-#method="C:/Users/user/Documents/Julia/writekhoros_info.mexw64"
-#mxAddMexFile(method,0)
-#@mxAddMexFileV2(:($method),0)
-@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/writekhoros_info.mexw64",-1)
-#@mxAddMexFile("C:/Users/user/Documents/Julia/writekhoros_info.mexw64",0)
-#enumMxFunc
-
-writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8")
-#
-#
-
-writekhoros_info("tetetetete", [10.0 10 10 10 10] ,  "uint8";nlhs=2)
-
-#
-#
-@mxAddMexFile("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/readkhoros_info.mexw64",2)
-readkhoros_info("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/MatlabKhoros_out_test.1")
-
-
-#readkhoros_info("C:/cygwin64/home/Simon/work/juliaWork/juliaMex/exemples/MatlabKhoros_out_test.1";nlhs=1)
-
-
-
-
-
-
-
-
-out =  mxAddMexFile(method,0)
-println(out);
-
-rets = writekhoros_info( "aaazzz", [10.0 10 10 10 10] ,  "uint8" )
-println("result :");
-println(rets);
-mxDestroy();
-
-
-
 
 
 
@@ -213,15 +168,11 @@ end
 #
 #
 
-ExampleA()
 
 
 
 
 writekhoros_info("hello monde",[10.0 10 10 20 20],"uint8")
-
-
-
 
 cuda_cuda((),"cuda_memory");
 
